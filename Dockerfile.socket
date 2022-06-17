@@ -66,7 +66,7 @@ RUN set -x && \
 ENV sioclient_DIR=${CMAKE_INSTALL_PREFIX}/lib/cmake/sioclient
 
 # protobuf
-WORKDIR /tmp
+WORKDIR /workspace
 RUN set -x && \
   apt-get update -y -qq && \
   apt-get upgrade -y -qq --no-install-recommends && \
@@ -84,7 +84,6 @@ RUN set -x && \
   apt-get autoremove -y -qq && \
   rm -rf /var/lib/apt/lists/*
 
-WORKDIR /workspace
 # stella_vslam
 RUN set -x && \
   : "stella_vslam dependencies" && \
