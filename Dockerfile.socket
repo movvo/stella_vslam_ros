@@ -84,6 +84,7 @@ RUN set -x && \
   apt-get autoremove -y -qq && \
   rm -rf /var/lib/apt/lists/*
 
+WORKDIR /workspace
 # stella_vslam
 RUN set -x && \
   : "stella_vslam dependencies" && \
