@@ -108,7 +108,6 @@ RUN set -x && \
     .. && \
   make -j${NUM_THREADS} && \
   make install && \
-  rm -rf CMakeCache.txt CMakeFiles Makefile cmake_install.cmake example src && \
   chmod -R 777 ./*
 
 # ROS2
