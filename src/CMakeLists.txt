@@ -77,4 +77,3 @@ foreach(EXECUTABLE_TARGET IN LISTS EXECUTABLE_TARGETS)
             DESTINATION lib/${PROJECT_NAME})
 
 endforeach()
-

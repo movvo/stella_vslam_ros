@@ -192,24 +192,50 @@ endif()
 
 add_subdirectory(src)
 
+##################
+# Create library #
+##################
 
-###################################
-# Create stella_vslam_ros library #
-###################################
+add_library(${PROJECT_NAME} 
+            ${CMAKE_CURRENT_SOURCE_DIR}/src/stella_vslam_ros.h
+            ${CMAKE_CURRENT_SOURCE_DIR}/src/stella_vslam_ros.cc)
 
-if (NOT TARGET ${PROJECT_NAME}_lib)
-    add_library(${PROJECT_NAME}_lib
-                "src/stella_vslam_ros.cc"
-                "src/stella_vslam_ros.h"
-    )
-endif()
+ament_target_dependencies(${PROJECT_NAME} 
+                          rclcpp 
+                          cv_bridge
+                          image_transport
+                          message_filters
+                          geometry_msgs
+                          nav_msgs
+                          sensor_msgs
+                          tf2
+                          tf2_eigen
+                          tf2_geometry_msgs
+                          tf2_msgs
+                          tf2_ros
+                          Threads
+                          stella_vslam
+                          OpenCV
+                          Eigen3
+                          yaml-cpp
+                         )
+# Include directories
+target_include_directories(${PROJECT_NAME}
+                           PUBLIC
+                           "$<BUILD_INTERFACE:${json_INCLUDE_DIR}>"
+                           "$<BUILD_INTERFACE:${spdlog_INCLUDE_DIR}>"
+                           "$<BUILD_INTERFACE:${popl_INCLUDE_DIR}>"
+                           "$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/src/>"
+                           "$<INSTALL_INTERFACE:3rd/json/include>"
+                           "$<INSTALL_INTERFACE:3rd/spdlog/include>"
+                           "$<INSTALL_INTERFACE:3rd/popl/include>"
+                           "$<INSTALL_INTERFACE:include/>")
 
-ament_target_dependencies(${PROJECT_NAME}_lib 
-                            rclcpp
+ament_export_targets(export_${PROJECT_NAME} HAS_LIBRARY_TARGET)
+ament_export_dependencies(  rclcpp 
                             cv_bridge
                             image_transport
                             message_filters
-                            rcutils
                             geometry_msgs
                             nav_msgs
                             sensor_msgs
@@ -218,50 +244,31 @@ ament_target_dependencies(${PROJECT_NAME}_lib
                             tf2_geometry_msgs
                             tf2_msgs
                             tf2_ros
-                            stella_vslam)
-
-target_include_directories(${PROJECT_NAME}_lib
-  PUBLIC
-    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src>
-    $<INSTALL_INTERFACE:include>)
-
-ament_export_targets(export_${PROJECT_NAME}_lib HAS_LIBRARY_TARGET)
-ament_export_dependencies(  rclcpp
-                            cv_bridge
-                            image_transport
-                            message_filters
-                            rcutils
-                            geometry_msgs
-                            nav_msgs
-                            sensor_msgs
-                            tf2
-                            tf2_eigen
-                            tf2_geometry_msgs
-                            tf2_msgs
-                            tf2_ros
-                            stella_vslam)
-
-
-
+                            Threads
+                            stella_vslam
+                            OpenCV
+                            Eigen3
+                            yaml-cpp)
 install(
-DIRECTORY   ${CMAKE_CURRENT_SOURCE_DIR}/src/  
-            ${CMAKE_CURRENT_SOURCE_DIR}/3rd/json/include/
-            ${CMAKE_CURRENT_SOURCE_DIR}/3rd/popl/include/
-            ${CMAKE_CURRENT_SOURCE_DIR}/3rd/spdlog/include/
-DESTINATION include
+    DIRECTORY src/
+    DESTINATION include
 )
 
 install(
-TARGETS ${PROJECT_NAME}_lib 
-EXPORT export_${PROJECT_NAME}_lib 
-LIBRARY DESTINATION lib
-ARCHIVE DESTINATION lib
-RUNTIME DESTINATION bin
-INCLUDES DESTINATION include
+    DIRECTORY 3rd/
+    DESTINATION 3rd
 )
 
-ament_export_include_directories(${CMAKE_CURRENT_SOURCE_DIR}/src/)
-ament_export_libraries(${PROJECT_NAME}_lib)
+install(
+    TARGETS ${PROJECT_NAME}
+    EXPORT export_${PROJECT_NAME}
+    LIBRARY DESTINATION lib
+    ARCHIVE DESTINATION lib
+    RUNTIME DESTINATION bin
+    INCLUDES DESTINATION include
+)
 
+ament_export_include_directories(include)
+ament_export_libraries(${PROJECT_NAME})
 
 ament_package()
