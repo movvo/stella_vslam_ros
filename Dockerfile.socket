@@ -95,7 +95,7 @@ RUN set -x && \
   rm -rf /var/lib/apt/lists/*
 
 RUN set -x && \
-  git clone --depth 1 https://github.com/movvo/stella_vslam.git && \
+  git clone --depth 1 --branch main_ros2 https://github.com/movvo/stella_vslam.git && \
   cd stella_vslam && \
   git submodule update -i --recursive && \
   mkdir -p build && \
