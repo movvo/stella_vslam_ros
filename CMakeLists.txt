@@ -155,8 +155,7 @@ include_directories(${EIGEN3_INCLUDE_DIR})
 find_package(yaml-cpp REQUIRED)
 
 # spdlog
-set(spdlog_INCLUDE_DIR ${PROJECT_SOURCE_DIR}/3rd/spdlog/include)
-include_directories(${spdlog_INCLUDE_DIR})
+find_package(spdlog REQUIRED)
 
 # popl
 set(popl_INCLUDE_DIR ${PROJECT_SOURCE_DIR}/3rd/popl/include)
@@ -218,16 +217,15 @@ ament_target_dependencies(${PROJECT_NAME}
                           OpenCV
                           Eigen3
                           yaml-cpp
+                          spdlog
                          )
 # Include directories
 target_include_directories(${PROJECT_NAME}
                            PUBLIC
                            "$<BUILD_INTERFACE:${json_INCLUDE_DIR}>"
-                           "$<BUILD_INTERFACE:${spdlog_INCLUDE_DIR}>"
                            "$<BUILD_INTERFACE:${popl_INCLUDE_DIR}>"
                            "$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/src/>"
                            "$<INSTALL_INTERFACE:3rd/json/include>"
-                           "$<INSTALL_INTERFACE:3rd/spdlog/include>"
                            "$<INSTALL_INTERFACE:3rd/popl/include>"
                            "$<INSTALL_INTERFACE:include/>")
 
@@ -248,7 +246,8 @@ ament_export_dependencies(  rclcpp
                             stella_vslam
                             OpenCV
                             Eigen3
-                            yaml-cpp)
+                            yaml-cpp
+                            spdlog)
 install(
     DIRECTORY src/
     DESTINATION include
