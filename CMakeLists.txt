@@ -195,7 +195,8 @@ add_subdirectory(src)
 # Create library #
 ##################
 
-add_library(${PROJECT_NAME} 
+add_library(${PROJECT_NAME}
+            ${CMAKE_CURRENT_SOURCE_DIR}/src/stella_vslam_ros_interface.hpp
             ${CMAKE_CURRENT_SOURCE_DIR}/src/stella_vslam_ros.h
             ${CMAKE_CURRENT_SOURCE_DIR}/src/stella_vslam_ros.cc)
 

@@ -1,6 +1,8 @@
 #ifndef STELLA_SLAM_ROS_H
 #define STELLA_SLAM_ROS_H
 
+#include "stella_vslam_ros_interface.hpp"
+
 #include <stella_vslam/system.h>
 #include <stella_vslam/config.h>
 #include <stella_vslam/util/stereo_rectifier.h>
@@ -24,7 +26,7 @@
 #include <geometry_msgs/msg/pose_with_covariance_stamped.hpp>
 
 namespace stella_vslam_ros {
-class system {
+class system: public SystemInterface{
 public:
     system(const std::shared_ptr<stella_vslam::config>& cfg, const std::string& vocab_file_path, const std::string& mask_img_path);
     void publish_pose(const Eigen::Matrix4d& cam_pose_wc, const rclcpp::Time& stamp);
