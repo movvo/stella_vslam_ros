@@ -231,6 +231,7 @@ target_include_directories(${PROJECT_NAME}
                            "$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/src/>"
                            "$<INSTALL_INTERFACE:3rd/json/include>"
                            "$<INSTALL_INTERFACE:3rd/popl/include>"
+                           "$<INSTALL_INTERFACE:3rd/filesystem/include>"
                            "$<INSTALL_INTERFACE:include/>")
 
 ament_export_targets(export_${PROJECT_NAME} HAS_LIBRARY_TARGET)

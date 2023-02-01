@@ -48,7 +48,8 @@ foreach(EXECUTABLE_TARGET IN LISTS EXECUTABLE_TARGETS)
 
     # setup yaml-cpp
     target_link_libraries(${EXECUTABLE_TARGET} PRIVATE
-        yaml-cpp)
+        yaml-cpp
+        fmt)
 
     # build
     target_include_directories(${EXECUTABLE_TARGET}
