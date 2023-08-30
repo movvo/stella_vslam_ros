@@ -13,13 +13,14 @@
 namespace stella_vslam_ros {
 system::system(const std::shared_ptr<stella_vslam::system>& slam,
                const std::string& mask_img_path)
-    : slam_(slam), node_(std::make_shared<rclcpp::Node>("run_slam")), custom_qos_(rmw_qos_profile_default),
+    : slam_(slam), node_(std::make_shared<rclcpp::Node>("run_slam")), custom_qos_(rclcpp::KeepLast(1)),
       mask_(mask_img_path.empty() ? cv::Mat{} : cv::imread(mask_img_path, cv::IMREAD_GRAYSCALE)),
       pose_pub_(node_->create_publisher<nav_msgs::msg::Odometry>("~/camera_pose", 1)),
       map_to_odom_broadcaster_(std::make_shared<tf2_ros::TransformBroadcaster>(node_)),
       tf_(std::make_unique<tf2_ros::Buffer>(node_->get_clock())),
       transform_listener_(std::make_shared<tf2_ros::TransformListener>(*tf_)) {
-    custom_qos_.depth = 1;
+    custom_qos_.best_effort();
+    custom_qos_.durability_volatile();
     exec_.add_node(node_);
     init_pose_sub_ = node_->create_subscription<geometry_msgs::msg::PoseWithCovarianceStamped>(
         "/initialpose", 1,
@@ -163,7 +164,7 @@ mono::mono(const std::shared_ptr<stella_vslam::system>& slam,
            const std::string& mask_img_path)
     : system(slam, mask_img_path) {
     sub_ = image_transport::create_subscription(
-        node_.get(), "camera/image_raw", [this](const sensor_msgs::msg::Image::ConstSharedPtr& msg) { callback(msg); }, "raw", custom_qos_);
+        node_.get(), "camera/image_raw", [this](const sensor_msgs::msg::Image::ConstSharedPtr& msg) { callback(msg); }, "raw", custom_qos_.get_rmw_qos_profile());
 }
 void mono::callback(const sensor_msgs::msg::Image::ConstSharedPtr& msg) {
     if (camera_optical_frame_.empty()) {

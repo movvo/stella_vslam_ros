@@ -34,7 +34,7 @@ public:
     std::shared_ptr<stella_vslam::config> cfg_;
     std::shared_ptr<rclcpp::Node> node_;
     rclcpp::executors::SingleThreadedExecutor exec_;
-    rmw_qos_profile_t custom_qos_;
+    rclcpp::QoS custom_qos_;
     cv::Mat mask_;
     std::vector<double> track_times_;
     std::shared_ptr<rclcpp::Publisher<nav_msgs::msg::Odometry>> pose_pub_;
