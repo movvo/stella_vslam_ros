@@ -11,6 +11,10 @@
 #include <opencv2/imgcodecs.hpp>
 #include <Eigen/Geometry>
 
+#include <fstream>
+#include <iostream>
+#include <cstdio>
+
 namespace {
 Eigen::Affine3d project_to_xy_plane(const Eigen::Affine3d& affine) {
     Eigen::Matrix4d mat = affine.matrix();
@@ -45,6 +49,9 @@ system::system(const std::shared_ptr<stella_vslam::system>& slam,
                                 -1, 0, 0,
                                 0, -1, 0)
                                    .finished();
+    last_ = node_->now();
+
+    std::freopen("/ros2_ws/output.txt","w",stdout);
 }
 
 void system::publish_pose(const Eigen::Matrix4d& cam_pose_wc, const rclcpp::Time& stamp) {
@@ -241,6 +248,25 @@ void mono::callback(sensor_msgs::msg::Image::UniquePtr msg_unique_ptr) {
     if (publish_keyframes_) {
         publish_keyframes(msg->header.stamp);
     }
+
+    // Test
+    double freq = 1/(node_->now().seconds() - last_.seconds());    
+    if (frequencies_.size() < 60){
+        frequencies_.push_back(freq);
+    }
+    else if (frequencies_.size() == 60){
+        frequencies_.erase(frequencies_.begin());
+        frequencies_.push_back(freq);
+    }
+    double sum_values = 0;
+    for (uint32_t i = 0; i<frequencies_.size(); i++){
+        sum_values += frequencies_[i];
+    }
+    double median = sum_values/frequencies_.size();
+    std::cout <<  "SUBS FREQ MEDIAN: " << median << std::endl;
+
+    last_ = node_->now();
+
 }
 
 void mono::callback(const sensor_msgs::msg::Image::ConstSharedPtr& msg) {
