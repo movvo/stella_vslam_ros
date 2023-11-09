@@ -21,15 +21,37 @@ RUN set -x && \
     libgoogle-glog-dev \
     libatlas-base-dev \
     libsuitesparse-dev && \
-  : "other dependencies" && \
+  : "OpenCV dependencies" && \
   apt-get install -y -qq \
+    libjpeg-dev \
+    libpng++-dev \
+    libtiff-dev \
+    libopenexr-dev \
+    libwebp-dev \
+    ffmpeg \
+    libavcodec-dev \
+    libavformat-dev \
+    libavutil-dev \
+    libswscale-dev \
+    libtbb-dev && \
+  : "other dependencies" && \
+  apt install -y -qq \
     libgoogle-glog-dev \
-    libyaml-cpp-dev \ 
-    libopencv-dev \
-    libeigen3-dev && \
+    libyaml-cpp-dev \
+    libeigen3-dev \
+    sqlite3 \
+    libsqlite3-dev \
+    gcc-10 g++-10 \
+    nvidia-cuda-toolkit && \
   : "remove cache" && \
   apt-get autoremove -y -qq && \
   rm -rf /var/lib/apt/lists/*
+
+# Downgrade GCC/G++ version (needed to build opencv with CUDA)
+RUN update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-10 10 && \
+  update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-10 10 && \
+  update-alternatives --config gcc && \
+  update-alternatives --config g++ 
 
 ARG CMAKE_INSTALL_PREFIX=/usr/local
 ARG NUM_THREADS=1
@@ -84,6 +106,32 @@ RUN set -x && \
   apt-get autoremove -y -qq && \
   rm -rf /var/lib/apt/lists/*
 
+# OpenCV
+ARG OPENCV_VERSION=4.7.0
+WORKDIR /tmp
+RUN set -x && \
+  wget -q https://github.com/opencv/opencv/archive/${OPENCV_VERSION}.zip && \
+  unzip -q ${OPENCV_VERSION}.zip && \
+  rm -rf ${OPENCV_VERSION}.zip && \
+  wget -q https://github.com/opencv/opencv_contrib/archive/${OPENCV_VERSION}.zip && \
+  unzip -q ${OPENCV_VERSION}.zip && \
+  rm -rf ${OPENCV_VERSION}.zip && \
+  cd opencv-${OPENCV_VERSION} && \
+  mkdir -p build && \
+  cd build && \
+  cmake \
+    -D CMAKE_BUILD_TYPE=RELEASE \
+    -D CMAKE_INSTALL_PREFIX=/usr/local \
+    -D WITH_CUDA=ON \
+    -D CUDA_ARCH_BIN=6.0,6.1,6.2,7.0,7.5,8.0,8.6 \
+    -D OPENCV_EXTRA_MODULES_PATH=/tmp/opencv_contrib-${OPENCV_VERSION}/modules \
+    .. && \
+  make -j${NUM_THREADS} && \
+  make install && \
+  cd /tmp && \
+  rm -rf *
+ENV OpenCV_DIR=${CMAKE_INSTALL_PREFIX}/lib/cmake/opencv4
+
 # stella_vslam
 RUN set -x && \
   : "stella_vslam dependencies" && \
@@ -95,7 +143,7 @@ RUN set -x && \
   rm -rf /var/lib/apt/lists/*
 
 RUN set -x && \
-  git clone --depth 1 --branch main https://github.com/movvo/stella_vslam.git && \
+  git clone --depth 1 --branch gpu_acceleration https://github.com/movvo/stella_vslam.git && \
   cd stella_vslam && \
   git submodule update -i --recursive && \
   mkdir -p build && \
