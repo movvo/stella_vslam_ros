@@ -93,8 +93,9 @@ RUN set -x && \
   apt-get autoremove -y -qq && \
   rm -rf /var/lib/apt/lists/*
 
+WORKDIR /stella
 RUN set -x && \
-  git clone --depth 1 https://github.com/stella-cv/stella_vslam.git && \
+  git clone --branch optimitzacio https://github.com/movvo/stella_vslam.git && \
   cd stella_vslam && \
   git submodule update -i --recursive && \
   mkdir -p build && \
@@ -102,7 +103,6 @@ RUN set -x && \
   CMAKE_PREFIX_PATH=/opt/ros/${ROS_DISTRO}/lib/cmake cmake .. && \
   make -j${NUM_THREADS} && \
   make install && \
-  rm -rf CMakeCache.txt CMakeFiles Makefile cmake_install.cmake example src && \
   chmod -R 777 ./*
 
 ARG SOCKET_PUBLISHER_COMMIT=e2aaf66b27a6477b478bc8e86992907f09f29188
