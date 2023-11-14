@@ -51,6 +51,7 @@ system::system(const std::shared_ptr<stella_vslam::system>& slam,
                                    .finished();
     last_ = node_->now();
 
+    id_ = rand();
     std::freopen("/ros2_ws/output.txt","w",stdout);
 }
 
@@ -234,7 +235,9 @@ void mono::callback(sensor_msgs::msg::Image::UniquePtr msg_unique_ptr) {
     const double timestamp = rclcpp::Time(msg->header.stamp).seconds();
 
     // input the current frame and estimate the camera pose
-    auto cam_pose_wc = slam_->feed_monocular_frame(cv_bridge::toCvShare(msg)->image, timestamp, mask_);
+    std::cout<<"Call of the component: "<<std::to_string(id_)<<std::endl;
+    auto cam_pose_wc = slam_->feed_monocular_frame(id_, cv_bridge::toCvShare(msg)->image, timestamp, mask_);
+    std::cout<<"Finish of the call of the component: "<<std::to_string(id_)<<std::endl<<std::endl;;
 
     const rclcpp::Time tp_2 = node_->now();
     const double track_time = (tp_2 - tp_1).seconds();
@@ -277,7 +280,7 @@ void mono::callback(const sensor_msgs::msg::Image::ConstSharedPtr& msg) {
     const double timestamp = rclcpp::Time(msg->header.stamp).seconds();
 
     // input the current frame and estimate the camera pose
-    auto cam_pose_wc = slam_->feed_monocular_frame(cv_bridge::toCvShare(msg)->image, timestamp, mask_);
+    auto cam_pose_wc = slam_->feed_monocular_frame(id_, cv_bridge::toCvShare(msg)->image, timestamp, mask_);
 
     const rclcpp::Time tp_2 = node_->now();
     const double track_time = (tp_2 - tp_1).seconds();

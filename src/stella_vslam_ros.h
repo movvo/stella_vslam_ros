@@ -65,6 +65,9 @@ public:
     // If true, odom_frame is fixed on the xy-plane of map_frame. This is useful when working with 2D navigation modules.
     bool odom2d_;
 
+    //ID
+    int id_;
+
     // Test
     rclcpp::Time last_;
     std::vector<double> frequencies_;
