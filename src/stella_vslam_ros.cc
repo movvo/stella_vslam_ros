@@ -235,9 +235,12 @@ void mono::callback(sensor_msgs::msg::Image::UniquePtr msg_unique_ptr) {
     const double timestamp = rclcpp::Time(msg->header.stamp).seconds();
 
     // input the current frame and estimate the camera pose
-    std::cout<<"Call of the component: "<<std::to_string(id_)<<std::endl;
+    using namespace std::chrono;
+    auto ms = duration_cast<milliseconds>(system_clock::now().time_since_epoch()).count();
+    std::cout<<"["<<ms<<"]"<<"Call of the component: "<<std::to_string(id_)<<std::endl;
     auto cam_pose_wc = slam_->feed_monocular_frame(id_, cv_bridge::toCvShare(msg)->image, timestamp, mask_);
-    std::cout<<"Finish of the call of the component: "<<std::to_string(id_)<<std::endl<<std::endl;;
+    ms = duration_cast<milliseconds>(system_clock::now().time_since_epoch()).count();
+    std::cout<<"["<<ms<<"]"<<"Finish of the call of the component: "<<std::to_string(id_)<<std::endl<<std::endl;
 
     const rclcpp::Time tp_2 = node_->now();
     const double track_time = (tp_2 - tp_1).seconds();
