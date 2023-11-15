@@ -227,6 +227,9 @@ mono::mono(const std::shared_ptr<stella_vslam::system>& slam,
         "camera/image_raw", qos, [this](sensor_msgs::msg::Image::UniquePtr msg_unique_ptr) { callback(std::move(msg_unique_ptr)); });
 }
 void mono::callback(sensor_msgs::msg::Image::UniquePtr msg_unique_ptr) {
+    using namespace std::chrono;
+    auto ms = duration_cast<milliseconds>(system_clock::now().time_since_epoch()).count();
+    std::cout<<"["<<ms<<"]"<<"Entering callback: "<<std::to_string(id_)<<std::endl;
     sensor_msgs::msg::Image::ConstSharedPtr msg = std::move(msg_unique_ptr);
     if (camera_optical_frame_.empty()) {
         camera_optical_frame_ = msg->header.frame_id;
@@ -235,8 +238,8 @@ void mono::callback(sensor_msgs::msg::Image::UniquePtr msg_unique_ptr) {
     const double timestamp = rclcpp::Time(msg->header.stamp).seconds();
 
     // input the current frame and estimate the camera pose
-    using namespace std::chrono;
-    auto ms = duration_cast<milliseconds>(system_clock::now().time_since_epoch()).count();
+  
+    ms = duration_cast<milliseconds>(system_clock::now().time_since_epoch()).count();
     std::cout<<"["<<ms<<"]"<<"Call of the component: "<<std::to_string(id_)<<std::endl;
     auto cam_pose_wc = slam_->feed_monocular_frame(id_, cv_bridge::toCvShare(msg)->image, timestamp, mask_);
     ms = duration_cast<milliseconds>(system_clock::now().time_since_epoch()).count();
@@ -272,6 +275,8 @@ void mono::callback(sensor_msgs::msg::Image::UniquePtr msg_unique_ptr) {
     std::cout <<  "SUBS FREQ MEDIAN: " << median << std::endl;
 
     last_ = node_->now();
+    ms = duration_cast<milliseconds>(system_clock::now().time_since_epoch()).count();
+    std::cout<<"["<<ms<<"]"<<"Finishing callback: "<<std::to_string(id_)<<std::endl;
 
 }
 
