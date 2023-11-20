@@ -31,7 +31,7 @@ namespace stella_vslam_ros {
 system::system(const std::shared_ptr<stella_vslam::system>& slam,
                rclcpp::Node* node,
                const std::string& mask_img_path)
-    : slam_(slam), node_(node), custom_qos_(rmw_qos_profile_sensor_data),
+    : slam_(slam), node_(node), custom_qos_(1),
       mask_(mask_img_path.empty() ? cv::Mat{} : cv::imread(mask_img_path, cv::IMREAD_GRAYSCALE)),
       pose_pub_(node_->create_publisher<nav_msgs::msg::Odometry>("~/camera_pose", 1)),
       keyframes_pub_(node_->create_publisher<geometry_msgs::msg::PoseArray>("~/keyframes", 1)),
@@ -39,7 +39,10 @@ system::system(const std::shared_ptr<stella_vslam::system>& slam,
       map_to_odom_broadcaster_(std::make_shared<tf2_ros::TransformBroadcaster>(node_)),
       tf_(std::make_unique<tf2_ros::Buffer>(node_->get_clock())),
       transform_listener_(std::make_shared<tf2_ros::TransformListener>(*tf_)) {
-    custom_qos_.depth = 1;
+
+    custom_qos_.best_effort();
+    custom_qos_.keep_last(1);
+    custom_qos_.durability_volatile();
     init_pose_sub_ = node_->create_subscription<geometry_msgs::msg::PoseWithCovarianceStamped>(
         "/initialpose", 1,
         std::bind(&system::init_pose_callback,
@@ -222,7 +225,7 @@ mono::mono(const std::shared_ptr<stella_vslam::system>& slam,
            rclcpp::Node* node,
            const std::string& mask_img_path)
     : system(slam, node, mask_img_path) {
-    auto qos = rclcpp::QoS(rclcpp::QoSInitialization::from_rmw(custom_qos_), custom_qos_);
+    auto qos = custom_qos_;
     raw_image_sub_ = node_->create_subscription<sensor_msgs::msg::Image>(
         "camera/image_raw", qos, [this](sensor_msgs::msg::Image::UniquePtr msg_unique_ptr) { callback(std::move(msg_unique_ptr)); });
 }
@@ -241,7 +244,7 @@ void mono::callback(sensor_msgs::msg::Image::UniquePtr msg_unique_ptr) {
   
     ms = duration_cast<milliseconds>(system_clock::now().time_since_epoch()).count();
     std::cout<<"["<<ms<<"]"<<"Call of the component: "<<std::to_string(id_)<<std::endl;
-    auto cam_pose_wc = slam_->feed_monocular_frame(id_, cv_bridge::toCvShare(msg)->image, timestamp, mask_);
+    //auto cam_pose_wc = slam_->feed_monocular_frame(id_, cv_bridge::toCvShare(msg)->image, timestamp, mask_);
     ms = duration_cast<milliseconds>(system_clock::now().time_since_epoch()).count();
     std::cout<<"["<<ms<<"]"<<"Finish of the call of the component: "<<std::to_string(id_)<<std::endl<<std::endl;
 
@@ -251,12 +254,12 @@ void mono::callback(sensor_msgs::msg::Image::UniquePtr msg_unique_ptr) {
     // track times in seconds
     track_times_.push_back(track_time);
 
-    if (cam_pose_wc) {
-        publish_pose(*cam_pose_wc, msg->header.stamp);
-    }
-    if (publish_keyframes_) {
-        publish_keyframes(msg->header.stamp);
-    }
+    // if (cam_pose_wc) {
+    //     publish_pose(*cam_pose_wc, msg->header.stamp);
+    // }
+    // if (publish_keyframes_) {
+    //     publish_keyframes(msg->header.stamp);
+    // }
 
     // Test
     double freq = 1/(node_->now().seconds() - last_.seconds());    
@@ -271,12 +274,12 @@ void mono::callback(sensor_msgs::msg::Image::UniquePtr msg_unique_ptr) {
     for (uint32_t i = 0; i<frequencies_.size(); i++){
         sum_values += frequencies_[i];
     }
-    double median = sum_values/frequencies_.size();
-    std::cout <<  "SUBS FREQ MEDIAN: " << median << std::endl;
+    // double median = sum_values/frequencies_.size();
+    // std::cout <<  "SUBS FREQ MEDIAN: " << median << std::endl;
 
-    last_ = node_->now();
-    ms = duration_cast<milliseconds>(system_clock::now().time_since_epoch()).count();
-    std::cout<<"["<<ms<<"]"<<"Finishing callback: "<<std::to_string(id_)<<std::endl;
+    // last_ = node_->now();
+    // ms = duration_cast<milliseconds>(system_clock::now().time_since_epoch()).count();
+    // std::cout<<"["<<ms<<"]"<<"Finishing callback: "<<std::to_string(id_)<<std::endl;
 
 }
 
