@@ -64,6 +64,7 @@ System::System(
     bool disable_mapping = declare_parameter("disable_mapping", false);
     bool temporal_mapping = declare_parameter("temporal_mapping", false);
     std::string viewer = declare_parameter("viewer", "none");
+    std::string type = declare_parameter("type", "mono");
 
     if (vocab_file_path.empty() || setting_file_path.empty()) {
         RCLCPP_FATAL(get_logger(), "Invalid parameter");
@@ -136,8 +137,13 @@ System::System(
         slam_->disable_loop_detector();
     }
 
-    if (slam_->get_camera()->setup_type_ == stella_vslam::camera::setup_type_t::Monocular) {
+    if (slam_->get_camera()->setup_type_ == stella_vslam::camera::setup_type_t::Monocular 
+        && type == "topic") {
         slam_ros_ = std::make_shared<stella_vslam_ros::mono>(slam_, this, "");
+    }
+    else if (slam_->get_camera()->setup_type_ == stella_vslam::camera::setup_type_t::Monocular 
+        && type == "direct") {
+        slam_ros_ = std::make_shared<stella_vslam_ros::video>(slam_, this, "");
     }
     else {
         RCLCPP_FATAL_STREAM(get_logger(), "Invalid setup type: " << slam_->get_camera()->get_setup_type_string());

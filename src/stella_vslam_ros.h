@@ -56,6 +56,9 @@ public:
     // If true, publish tf from map_frame to odom_frame
     bool publish_tf_;
 
+    //Type of input
+    int type_;
+
     // If true, publish keyframes
     bool publish_keyframes_;
 
@@ -76,6 +79,14 @@ private:
     void init_pose_callback(const geometry_msgs::msg::PoseWithCovarianceStamped::SharedPtr msg);
 
     Eigen::AngleAxisd rot_ros_to_cv_map_frame_;
+};
+
+class video : public system {
+public:
+    video(const std::shared_ptr<stella_vslam::system>& slam,
+         rclcpp::Node* node,
+         const std::string& mask_img_path);
+    int from_video();
 };
 
 class mono : public system {

@@ -9,11 +9,13 @@
 #include <geometry_msgs/msg/transform_stamped.h>
 #include <opencv2/core/core.hpp>
 #include <opencv2/imgcodecs.hpp>
+#include <opencv2/opencv.hpp>
 #include <Eigen/Geometry>
 
 #include <fstream>
 #include <iostream>
 #include <cstdio>
+#include <thread>
 
 namespace {
 Eigen::Affine3d project_to_xy_plane(const Eigen::Affine3d& affine) {
@@ -41,7 +43,7 @@ system::system(const std::shared_ptr<stella_vslam::system>& slam,
       transform_listener_(std::make_shared<tf2_ros::TransformListener>(*tf_)) {
 
     custom_qos_.best_effort();
-    custom_qos_.keep_last(1);
+    custom_qos_.keep_last(5);
     custom_qos_.durability_volatile();
     init_pose_sub_ = node_->create_subscription<geometry_msgs::msg::PoseWithCovarianceStamped>(
         "/initialpose", 1,
@@ -221,6 +223,54 @@ void system::init_pose_callback(
     }
 }
 
+
+video::video(const std::shared_ptr<stella_vslam::system>& slam,
+           rclcpp::Node* node,
+           const std::string& mask_img_path)
+    : system(slam, node, mask_img_path) {
+    auto qos = custom_qos_;
+    std::thread thread_obj(&video::from_video, this);
+    thread_obj.detach();
+}
+
+int video::from_video() {
+    using namespace std::chrono;
+    cv::VideoCapture cap("/inputs/aist_living_lab_3/video.mp4");
+    auto ms = duration_cast<milliseconds>(system_clock::now().time_since_epoch()).count();
+    // Check if camera opened successfully
+    if(!cap.isOpened()){
+        std::cout << "Error opening video stream or file" << std::endl;
+    return -1;
+    }
+    while(1){
+        ms = duration_cast<milliseconds>(system_clock::now().time_since_epoch()).count();
+        std::cout<<"["<<ms<<"]"<<"Creating a frame: "<<std::to_string(id_)<<std::endl;
+        cv::Mat frame;
+        // Capture frame-by-frame
+        cap >> frame;
+    
+        // If the frame is empty, break immediately
+        if (frame.empty())
+        break;
+        std::cout<<"["<<ms<<"]"<<"Start calling stella for component: "<<std::to_string(id_)<<std::endl<<std::endl;
+        auto cam_pose_wc = slam_->feed_monocular_frame(id_, frame, ms);
+        ms = duration_cast<milliseconds>(system_clock::now().time_since_epoch()).count();
+        std::cout<<"["<<ms<<"]"<<"Finish calling stella for component: "<<std::to_string(id_)<<std::endl<<std::endl;
+
+        // Press  ESC on keyboard to exit
+        char c=(char)cv::waitKey(25);
+        if(c==27)
+        break;
+    }
+    // When everything done, release the video capture object
+    cap.release();
+    // Closes all the frames
+    cv::destroyAllWindows();
+    return 0;
+}
+
+
+
 mono::mono(const std::shared_ptr<stella_vslam::system>& slam,
            rclcpp::Node* node,
            const std::string& mask_img_path)
@@ -229,6 +279,7 @@ mono::mono(const std::shared_ptr<stella_vslam::system>& slam,
     raw_image_sub_ = node_->create_subscription<sensor_msgs::msg::Image>(
         "camera/image_raw", qos, [this](sensor_msgs::msg::Image::UniquePtr msg_unique_ptr) { callback(std::move(msg_unique_ptr)); });
 }
+
 void mono::callback(sensor_msgs::msg::Image::UniquePtr msg_unique_ptr) {
     using namespace std::chrono;
     auto ms = duration_cast<milliseconds>(system_clock::now().time_since_epoch()).count();
