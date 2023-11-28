@@ -224,16 +224,16 @@ void system::init_pose_callback(
 }
 
 
-video::video(const std::shared_ptr<stella_vslam::system>& slam,
+camera::camera(const std::shared_ptr<stella_vslam::system>& slam,
            rclcpp::Node* node,
            const std::string& mask_img_path)
     : system(slam, node, mask_img_path) {
     auto qos = custom_qos_;
-    std::thread thread_obj(&video::from_video, this);
+    std::thread thread_obj(&camera::get_frames_video, this);
     thread_obj.detach();
 }
 
-int video::from_video() {
+int camera::get_frames_video() {
     using namespace std::chrono;
     cv::VideoCapture cap("/inputs/aist_living_lab_3/video.mp4");
     auto ms = duration_cast<milliseconds>(system_clock::now().time_since_epoch()).count();
@@ -245,17 +245,15 @@ int video::from_video() {
     while(1){
         ms = duration_cast<milliseconds>(system_clock::now().time_since_epoch()).count();
         std::cout<<"["<<ms<<"]"<<"Creating a frame: "<<std::to_string(id_)<<std::endl;
-        cv::Mat frame;
+        std::shared_ptr<cv::Mat> frame = std::make_shared<cv::Mat>();
         // Capture frame-by-frame
-        cap >> frame;
+        cap >> *frame;
     
         // If the frame is empty, break immediately
-        if (frame.empty())
+        if (frame->empty())
         break;
-        std::cout<<"["<<ms<<"]"<<"Start calling stella for component: "<<std::to_string(id_)<<std::endl<<std::endl;
-        auto cam_pose_wc = slam_->feed_monocular_frame(id_, frame, ms);
-        ms = duration_cast<milliseconds>(system_clock::now().time_since_epoch()).count();
-        std::cout<<"["<<ms<<"]"<<"Finish calling stella for component: "<<std::to_string(id_)<<std::endl<<std::endl;
+
+
 
         // Press  ESC on keyboard to exit
         char c=(char)cv::waitKey(25);
@@ -276,6 +274,7 @@ mono::mono(const std::shared_ptr<stella_vslam::system>& slam,
            const std::string& mask_img_path)
     : system(slam, node, mask_img_path) {
     auto qos = custom_qos_;
+    num_consumers_++;
     raw_image_sub_ = node_->create_subscription<sensor_msgs::msg::Image>(
         "camera/image_raw", qos, [this](sensor_msgs::msg::Image::UniquePtr msg_unique_ptr) { callback(std::move(msg_unique_ptr)); });
 }

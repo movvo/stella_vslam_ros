@@ -56,8 +56,8 @@ public:
     // If true, publish tf from map_frame to odom_frame
     bool publish_tf_;
 
-    //Type of input
-    int type_;
+    //Counter of consumers
+    int num_consumers_ = 0;
 
     // If true, publish keyframes
     bool publish_keyframes_;
@@ -81,12 +81,13 @@ private:
     Eigen::AngleAxisd rot_ros_to_cv_map_frame_;
 };
 
-class video : public system {
+class camera : public system {
 public:
-    video(const std::shared_ptr<stella_vslam::system>& slam,
+    camera(const std::shared_ptr<stella_vslam::system>& slam,
          rclcpp::Node* node,
          const std::string& mask_img_path);
-    int from_video();
+    int get_frames_camera();
+    int get_frames_video();
 };
 
 class mono : public system {
