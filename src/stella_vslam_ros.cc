@@ -234,6 +234,7 @@ mono::mono(const std::shared_ptr<stella_vslam::system>& slam,
     : system(slam, node, mask_img_path) {
     std::cout << "Holiwis" << std::endl;
     auto qos = custom_qos_;
+    num_consumers_++;
     raw_image_sub_ = node_->create_subscription<sensor_msgs::msg::Image>(
         "camera/image_raw", qos, [this](sensor_msgs::msg::Image::UniquePtr msg_unique_ptr) { callback(std::move(msg_unique_ptr)); });
 }

@@ -56,8 +56,8 @@ public:
     // If true, publish tf from map_frame to odom_frame
     bool publish_tf_;
 
-    //Type of input
-    int type_;
+    //Counter of consumers
+    int num_consumers_ = 0;
 
     // If true, publish keyframes
     bool publish_keyframes_;
