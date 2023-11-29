@@ -10,7 +10,8 @@ set(EXECUTABLE_TARGETS "")
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 add_executable(run_slam run_slam.cc stella_vslam_ros.cc)
 add_executable(run_slam_offline run_slam_offline.cc stella_vslam_ros.cc)
-list(APPEND EXECUTABLE_TARGETS run_slam run_slam_offline)
+add_executable(ProducerComponentManager producer_main.cpp producer.cpp stella_vslam_ros.cc system.cc)
+list(APPEND EXECUTABLE_TARGETS run_slam run_slam_offline ProducerComponentManager)
 
 foreach(EXECUTABLE_TARGET IN LISTS EXECUTABLE_TARGETS)
     # pangolin_viewer is used on a priority basis
@@ -49,7 +50,7 @@ foreach(EXECUTABLE_TARGET IN LISTS EXECUTABLE_TARGETS)
 
     # setup yaml-cpp
     target_link_libraries(${EXECUTABLE_TARGET} PRIVATE
-        yaml-cpp)
+        yaml-cpp ${Boost_INCLUDE_DIRS})
 
     if(spdlog_FOUND)
       target_link_libraries(${EXECUTABLE_TARGET} PRIVATE
@@ -64,6 +65,7 @@ foreach(EXECUTABLE_TARGET IN LISTS EXECUTABLE_TARGETS)
     ament_target_dependencies(${EXECUTABLE_TARGET}
                               PUBLIC
                               rclcpp
+                              rclcpp_components
                               cv_bridge
                               image_transport
                               message_filters

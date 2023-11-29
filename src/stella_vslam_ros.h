@@ -81,14 +81,6 @@ private:
     Eigen::AngleAxisd rot_ros_to_cv_map_frame_;
 };
 
-class video : public system {
-public:
-    video(const std::shared_ptr<stella_vslam::system>& slam,
-         rclcpp::Node* node,
-         const std::string& mask_img_path);
-    int from_video();
-};
-
 class mono : public system {
 public:
     mono(const std::shared_ptr<stella_vslam::system>& slam,

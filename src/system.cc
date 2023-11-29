@@ -1,52 +1,10 @@
-#ifdef HAVE_PANGOLIN_VIEWER
-#include "pangolin_viewer/viewer.h"
-#endif
-#ifdef HAVE_SOCKET_PUBLISHER
-#include "socket_publisher/publisher.h"
-#endif
+#include <system.h>
 
-#include <stella_vslam/system.h>
-#include <stella_vslam/config.h>
-#include <stella_vslam/util/yaml.h>
-#include <stella_vslam_ros.h>
-
-#include <iostream>
-#include <chrono>
-#include <fstream>
-#include <numeric>
-
-#include <opencv2/core/core.hpp>
-#include <opencv2/imgcodecs.hpp>
-#include <opencv2/highgui/highgui.hpp>
-#include <spdlog/spdlog.h>
-
-#include <ghc/filesystem.hpp>
 namespace fs = ghc::filesystem;
 
 namespace stella_vslam_ros {
 
-class System : public rclcpp::Node {
-public:
-    System(
-        const rclcpp::NodeOptions& options = rclcpp::NodeOptions());
-    System(
-        const std::string& name_space,
-        const rclcpp::NodeOptions& options = rclcpp::NodeOptions());
-    virtual ~System();
-
-    std::shared_ptr<stella_vslam_ros::system> slam_ros_;
-    std::shared_ptr<stella_vslam::system> slam_;
-    std::shared_ptr<stella_vslam::config> cfg_;
-    std::string map_db_path_out_;
-    std::string viewer_string_;
-    std::shared_ptr<std::thread> viewer_thread_;
-#ifdef HAVE_PANGOLIN_VIEWER
-    std::shared_ptr<pangolin_viewer::viewer> viewer_;
-#endif
-#ifdef HAVE_SOCKET_PUBLISHER
-    std::shared_ptr<socket_publisher::publisher> publisher_;
-#endif
-};
+const static int BUFFER_LENGTH = 100;
 
 System::System(
     const rclcpp::NodeOptions& options)
@@ -64,7 +22,6 @@ System::System(
     bool disable_mapping = declare_parameter("disable_mapping", false);
     bool temporal_mapping = declare_parameter("temporal_mapping", false);
     std::string viewer = declare_parameter("viewer", "none");
-    std::string type = declare_parameter("type", "mono");
 
     if (vocab_file_path.empty() || setting_file_path.empty()) {
         RCLCPP_FATAL(get_logger(), "Invalid parameter");
@@ -137,13 +94,10 @@ System::System(
         slam_->disable_loop_detector();
     }
 
-    if (slam_->get_camera()->setup_type_ == stella_vslam::camera::setup_type_t::Monocular 
-        && type == "topic") {
+    if (slam_->get_camera()->setup_type_ == stella_vslam::camera::setup_type_t::Monocular) {
+        std::cout << "Hola?" << std::endl;
         slam_ros_ = std::make_shared<stella_vslam_ros::mono>(slam_, this, "");
-    }
-    else if (slam_->get_camera()->setup_type_ == stella_vslam::camera::setup_type_t::Monocular 
-        && type == "direct") {
-        slam_ros_ = std::make_shared<stella_vslam_ros::video>(slam_, this, "");
+        std::cout << "Adeu" << std::endl;
     }
     else {
         RCLCPP_FATAL_STREAM(get_logger(), "Invalid setup type: " << slam_->get_camera()->get_setup_type_string());
@@ -194,6 +148,13 @@ System::System(
             }
         });
     }
+
+    std::cout << "HolaaaA" << std::endl;
+    timer_ = create_wall_timer(std::chrono::duration<double>(1/60), std::bind(&System::TimerCallback, this));
+    std::cout << "HolaaaaaaaaaaA" << std::endl;
+    buffer_ = std::make_shared<boost::circular_buffer<std::shared_ptr<stella_vslam::data::frame>>>(BUFFER_LENGTH);
+    std::cout << "HolaaaaaaaaaaaaaaaaaaaA" << std::endl;
+    id_ = rand();
 }
 
 System::~System() {
@@ -219,6 +180,39 @@ System::~System() {
         // output the map database
         slam_->save_map_database(map_db_path_out_);
     }
+}
+
+
+void System::LogWithTimestamp(std::string msg)
+{
+    auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+    std::cout<<"["<<ms<<"][Consumer-" << id_ << "]: " << msg << std::endl << std::endl;
+}
+
+void System::TimerCallback()
+{
+    {
+        std::unique_lock<std::mutex> lock(buffer_mutex_);
+        if (!buffer_->empty()) {
+            auto data_frame_ptr = buffer_->front();
+            LogWithTimestamp("Got data::frame wtih memaddres: " + std::to_string(reinterpret_cast<std::uintptr_t>(data_frame_ptr.get())));
+        }
+    }
+    auto data_frame_ptr = buffer_->front();
+
+    cv::Mat img; // Empty image because is for frame_publisher
+    auto res = slam_->feed_frame(id_, *data_frame_ptr.get(), img);
+}
+
+void System::AddFrame(std::shared_ptr<stella_vslam::data::frame> & frame)
+{
+    std::unique_lock<std::mutex> lock(buffer_mutex_);
+    buffer_->push_back(frame);
+}
+
+void System::SetBuffer(std::shared_ptr<boost::circular_buffer<std::shared_ptr<stella_vslam::data::frame>>> & circular_buffer)
+{
+    buffer_ = circular_buffer;
 }
 
 } // namespace stella_vslam_ros
