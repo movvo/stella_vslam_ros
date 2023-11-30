@@ -1,6 +1,9 @@
 #include <system.h>
+#include <stella_vslam/data/frame.h>
 
 namespace fs = ghc::filesystem;
+
+using namespace std::chrono_literals;
 
 namespace stella_vslam_ros {
 
@@ -10,21 +13,27 @@ System::System(
     const rclcpp::NodeOptions& options)
     : System("", options) {}
 
+rclcpp::node_interfaces::NodeBaseInterface::SharedPtr
+System::get_node_base_interface() const
+{
+    return nh_->get_node_base_interface();
+}
+
 System::System(
     const std::string& name_space,
     const rclcpp::NodeOptions& options)
-    : Node("run_slam", name_space, options) {
-    std::string vocab_file_path = declare_parameter("vocab_file_path", "");
-    std::string setting_file_path = declare_parameter("setting_file_path", "");
-    std::string log_level = declare_parameter("log_level", "info");
-    std::string map_db_path_in = declare_parameter("map_db_path_in", "");
-    map_db_path_out_ = declare_parameter("map_db_path_out", "");
-    bool disable_mapping = declare_parameter("disable_mapping", false);
-    bool temporal_mapping = declare_parameter("temporal_mapping", false);
-    std::string viewer = declare_parameter("viewer", "none");
+    : nh_(std::make_shared<rclcpp::Node>("run_slam", name_space, options)) {
+    std::string vocab_file_path = nh_->declare_parameter("vocab_file_path", "");
+    std::string setting_file_path = nh_->declare_parameter("setting_file_path", "");
+    std::string log_level = nh_->declare_parameter("log_level", "info");
+    std::string map_db_path_in = nh_->declare_parameter("map_db_path_in", "");
+    map_db_path_out_ = nh_->declare_parameter("map_db_path_out", "");
+    bool disable_mapping = nh_->declare_parameter("disable_mapping", true);
+    bool temporal_mapping = nh_->declare_parameter("temporal_mapping", false);
+    std::string viewer = nh_->declare_parameter("viewer", "none");
 
     if (vocab_file_path.empty() || setting_file_path.empty()) {
-        RCLCPP_FATAL(get_logger(), "Invalid parameter");
+        RCLCPP_FATAL(nh_->get_logger(), "Invalid parameter");
         return;
     }
 
@@ -32,18 +41,18 @@ System::System(
     if (!viewer.empty()) {
         viewer_string_ = viewer;
         if (viewer_string_ != "pangolin_viewer" && viewer_string_ != "socket_publisher" && viewer_string_ != "none") {
-            RCLCPP_FATAL(get_logger(), "invalid arguments (--viewer)");
+            RCLCPP_FATAL(nh_->get_logger(), "invalid arguments (--viewer)");
             return;
         }
 #ifndef HAVE_PANGOLIN_VIEWER
         if (viewer_string_ == "pangolin_viewer") {
-            RCLCPP_FATAL(get_logger(), "pangolin_viewer not linked");
+            RCLCPP_FATAL(nh_->get_logger(), "pangolin_viewer not linked");
             return;
         }
 #endif
 #ifndef HAVE_SOCKET_PUBLISHER
         if (viewer_string_ == "socket_publisher") {
-            RCLCPP_FATAL(get_logger(), "socket_publisher not linked");
+            RCLCPP_FATAL(nh_->get_logger(), "socket_publisher not linked");
             return;
         }
 #endif
@@ -65,12 +74,12 @@ System::System(
         cfg_ = std::make_shared<stella_vslam::config>(setting_file_path);
     }
     catch (const std::exception& e) {
-        RCLCPP_FATAL(get_logger(), e.what());
+        RCLCPP_FATAL(nh_->get_logger(), e.what());
         return;
     }
 
     slam_ = std::make_shared<stella_vslam::system>(cfg_, vocab_file_path);
-    bool need_initialize = true;
+    bool need_initialize = false;
     if (!map_db_path_in.empty()) {
         need_initialize = false;
         const auto path = fs::path(map_db_path_in);
@@ -88,6 +97,7 @@ System::System(
     slam_->startup(need_initialize);
     if (disable_mapping) {
         slam_->disable_mapping_module();
+        slam_->disable_loop_detector();
     }
     else if (temporal_mapping) {
         slam_->enable_temporal_mapping();
@@ -95,12 +105,10 @@ System::System(
     }
 
     if (slam_->get_camera()->setup_type_ == stella_vslam::camera::setup_type_t::Monocular) {
-        std::cout << "Hola?" << std::endl;
-        slam_ros_ = std::make_shared<stella_vslam_ros::mono>(slam_, this, "");
-        std::cout << "Adeu" << std::endl;
+        slam_ros_ = std::make_shared<stella_vslam_ros::mono>(slam_, nh_.get(), "");
     }
     else {
-        RCLCPP_FATAL_STREAM(get_logger(), "Invalid setup type: " << slam_->get_camera()->get_setup_type_string());
+        RCLCPP_FATAL_STREAM(nh_->get_logger(), "Invalid setup type: " << slam_->get_camera()->get_setup_type_string());
         return;
     }
 
@@ -149,11 +157,8 @@ System::System(
         });
     }
 
-    std::cout << "HolaaaA" << std::endl;
-    timer_ = create_wall_timer(std::chrono::duration<double>(1/60), std::bind(&System::TimerCallback, this));
-    std::cout << "HolaaaaaaaaaaA" << std::endl;
-    buffer_ = std::make_shared<boost::circular_buffer<std::shared_ptr<stella_vslam::data::frame>>>(BUFFER_LENGTH);
-    std::cout << "HolaaaaaaaaaaaaaaaaaaaA" << std::endl;
+    timer_ = nh_->create_wall_timer(33ms, std::bind(&System::TimerCallback, this));
+    buffer_ = boost::circular_buffer<std::shared_ptr<stella_vslam::data::frame>>(BUFFER_LENGTH);
     id_ = rand();
 }
 
@@ -182,37 +187,36 @@ System::~System() {
     }
 }
 
-
 void System::LogWithTimestamp(std::string msg)
 {
     auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
-    std::cout<<"["<<ms<<"][Consumer-" << id_ << "]: " << msg << std::endl << std::endl;
+    std::cout<<"["<<ms<<"][Consumer-" << id_ << "]: " << msg << std::endl;
 }
 
 void System::TimerCallback()
 {
+    std::shared_ptr<stella_vslam::data::frame> data_frame_ptr;
     {
-        std::unique_lock<std::mutex> lock(buffer_mutex_);
-        if (!buffer_->empty()) {
-            auto data_frame_ptr = buffer_->front();
-            LogWithTimestamp("Got data::frame wtih memaddres: " + std::to_string(reinterpret_cast<std::uintptr_t>(data_frame_ptr.get())));
+        std::lock_guard<std::mutex> lock(buffer_mutex_);
+        if (!buffer_.empty()) {
+            data_frame_ptr = buffer_.front();
+            buffer_.pop_front();
         }
     }
-    auto data_frame_ptr = buffer_->front();
-
-    cv::Mat img; // Empty image because is for frame_publisher
-    auto res = slam_->feed_frame(id_, *data_frame_ptr.get(), img);
+    
+    if (data_frame_ptr) {
+        cv::Mat img; // Empty image because is for frame_publisher
+        // LogWithTimestamp("Feeding frame with memaddres: 0x" + std::to_string(reinterpret_cast<std::uintptr_t>(data_frame_ptr.get())));
+        LogWithTimestamp("Feeding frame with id " + std::to_string(data_frame_ptr->id_));
+        auto res = slam_->feed_frame(id_, *data_frame_ptr.get(), img);
+        LogWithTimestamp("Ended feeding frame");
+    }
 }
 
 void System::AddFrame(std::shared_ptr<stella_vslam::data::frame> & frame)
 {
-    std::unique_lock<std::mutex> lock(buffer_mutex_);
-    buffer_->push_back(frame);
-}
-
-void System::SetBuffer(std::shared_ptr<boost::circular_buffer<std::shared_ptr<stella_vslam::data::frame>>> & circular_buffer)
-{
-    buffer_ = circular_buffer;
+    std::lock_guard<std::mutex> lock(buffer_mutex_);
+    buffer_.push_back(frame);
 }
 
 } // namespace stella_vslam_ros

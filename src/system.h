@@ -26,7 +26,7 @@
 
 namespace stella_vslam_ros {
 
-class System : public rclcpp::Node {
+class System {
 public:
     System(
         const rclcpp::NodeOptions& options = rclcpp::NodeOptions());
@@ -48,14 +48,17 @@ public:
     std::shared_ptr<socket_publisher::publisher> publisher_;
 #endif
 
+    rclcpp::node_interfaces::NodeBaseInterface::SharedPtr
+	get_node_base_interface() const;
+
     void TimerCallback();
     void LogWithTimestamp(std::string msg);
     void AddFrame(std::shared_ptr<stella_vslam::data::frame> & frame);
-    void SetBuffer(std::shared_ptr<boost::circular_buffer<std::shared_ptr<stella_vslam::data::frame>>> & circular_buffer);
     int id_;
+    rclcpp::Node::SharedPtr nh_;
     rclcpp::TimerBase::SharedPtr timer_;
     std::mutex buffer_mutex_;
-    std::shared_ptr<boost::circular_buffer<std::shared_ptr<stella_vslam::data::frame>>> buffer_;
+    boost::circular_buffer<std::shared_ptr<stella_vslam::data::frame>> buffer_;
 };
 
 } // namespace stella_vslam_ros

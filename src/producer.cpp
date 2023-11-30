@@ -38,21 +38,21 @@ bool Video::GrabFrame(cv::Mat & frame)
 // Component Manager a.k.a Producer
 void Producer::Configure()
 {
-    double frequency = System::declare_parameter("timer_frequency", 30.0);
-    timer_ = System::create_wall_timer(std::chrono::duration<double>(1/frequency), std::bind(&Producer::TimerCallback, this));
+    double frequency = declare_parameter("timer_frequency", 30.0);
+    timer_ = create_wall_timer(std::chrono::duration<double>(1/frequency), std::bind(&Producer::TimerCallback, this));
 
-    mode_ = System::declare_parameter("mode", "video");
+    mode_ = declare_parameter("mode", "video");
     if (mode_ == "camera") {
         // Geo Calicam
         // calicam_ = std::make_shared<MonocularCaliCam>();
     }
     else if (mode_ == "video") {
         // Video
-        std::string video_source = System::declare_parameter("video_source", "/inputs/aist_living_lab_3/video.mp4");
+        std::string video_source = declare_parameter("video_source", "/inputs/aist_living_lab_3/video.mp4");
         video_ = std::make_shared<Video>(video_source);
     }
     else {
-        RCLCPP_ERROR(System::get_logger(), "Unknown type of image source");
+        RCLCPP_ERROR(get_logger(), "Unknown type of image source");
     }
 }
 
@@ -70,16 +70,17 @@ void Producer::TimerCallback()
         }
     }
     
-    const double timestamp = System::now().seconds();
+    const double timestamp = now().seconds();
 
     ::LogWithTimestamp("Start creating monocular frame");
     auto data_frame = slam_->create_monocular_frame(1, frame, timestamp, mask);
     auto data_frame_ptr = std::make_shared<stella_vslam::data::frame>(data_frame);
-    ::LogWithTimestamp("Finish creating monocular frame with memaddres 0x" + std::to_string(reinterpret_cast<std::uintptr_t>(data_frame_ptr.get())));
+    // ::LogWithTimestamp("Finish creating monocular frame with memaddres 0x" + std::to_string(reinterpret_cast<std::uintptr_t>(data_frame_ptr.get())));
+    ::LogWithTimestamp("Finish creating monocular frame with id " + std::to_string(data_frame_ptr->id_));
 
     // Feed to components
     for (auto & [id, node] : node_wrappers_) {
-        auto vslam_component = (stella_vslam_ros::System*)(&node);
+        auto vslam_component = std::static_pointer_cast<stella_vslam_ros::System>(node.get_node_instance());
         vslam_component->AddFrame(data_frame_ptr);
     }
 }

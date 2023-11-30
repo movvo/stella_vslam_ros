@@ -42,8 +42,6 @@ system::system(const std::shared_ptr<stella_vslam::system>& slam,
       tf_(std::make_unique<tf2_ros::Buffer>(node_->get_clock())),
       transform_listener_(std::make_shared<tf2_ros::TransformListener>(*tf_)) {
 
-    std::cout << "systemzzz" << std::endl;
-
     custom_qos_.best_effort();
     custom_qos_.keep_last(5);
     custom_qos_.durability_volatile();
@@ -56,13 +54,9 @@ system::system(const std::shared_ptr<stella_vslam::system>& slam,
                                 -1, 0, 0,
                                 0, -1, 0)
                                    .finished();
-    std::cout << "systemzzz 1" << std::endl;
     last_ = node_->now();
-    std::cout << "systemzzz 2" << std::endl;
     id_ = rand();
-    std::cout << "systemzzz 3" << std::endl;
-    std::freopen("/ros2_ws/output.txt", "w", stdout);
-    std::cout << "systemzzz END" << std::endl;
+    // std::freopen("/ros2_ws/output.txt", "w", stdout);
 }
 
 void system::publish_pose(const Eigen::Matrix4d& cam_pose_wc, const rclcpp::Time& stamp) {
@@ -232,7 +226,6 @@ mono::mono(const std::shared_ptr<stella_vslam::system>& slam,
            rclcpp::Node* node,
            const std::string& mask_img_path)
     : system(slam, node, mask_img_path) {
-    std::cout << "Holiwis" << std::endl;
     auto qos = custom_qos_;
     num_consumers_++;
     raw_image_sub_ = node_->create_subscription<sensor_msgs::msg::Image>(
