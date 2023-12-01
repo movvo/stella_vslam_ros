@@ -7,6 +7,8 @@ endif()
 
 set(EXECUTABLE_TARGETS "")
 
+find_package(geo_calicam REQUIRED)
+
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 add_executable(run_slam run_slam.cc stella_vslam_ros.cc)
 add_executable(run_slam_offline run_slam_offline.cc stella_vslam_ros.cc)
@@ -79,7 +81,8 @@ foreach(EXECUTABLE_TARGET IN LISTS EXECUTABLE_TARGETS)
                               tf2_geometry_msgs
                               tf2_msgs
                               tf2_ros
-                              rosbag2_cpp)
+                              rosbag2_cpp
+                              geo_calicam)
     install(TARGETS ${EXECUTABLE_TARGET}
             DESTINATION lib/${PROJECT_NAME})
 

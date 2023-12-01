@@ -216,6 +216,7 @@ target_include_directories(stella_vslam_ros_system PRIVATE
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src>
   $<INSTALL_INTERFACE:src>)
 rclcpp_components_register_node(stella_vslam_ros_system PLUGIN "stella_vslam_ros::System" EXECUTABLE system)
+ament_export_libraries(stella_vslam_ros_system)
 ament_export_targets(export_${PROJECT_NAME} HAS_LIBRARY_TARGET)
 ament_target_dependencies(stella_vslam_ros_system
   PUBLIC

@@ -25,6 +25,7 @@ RUN set -x && \
   apt-get install -y -qq \
     libyaml-cpp-dev \ 
     libopencv-dev \
+    libboost-dev \
     libeigen3-dev && \
   : "remove cache" && \
   apt-get autoremove -y -qq && \
@@ -95,7 +96,7 @@ RUN set -x && \
 
 WORKDIR /stella
 RUN set -x && \
-  git clone --branch optimitzacio https://github.com/movvo/stella_vslam.git && \
+  git clone --branch producer_consumer https://github.com/movvo/stella_vslam.git && \
   cd stella_vslam && \
   git submodule update -i --recursive && \
   mkdir -p build && \
@@ -141,11 +142,11 @@ RUN set -x && \
 WORKDIR /ros2_ws
 COPY . /ros2_ws/src/stella_vslam_ros
 
-RUN set -x && \
-  : "build ROS2 packages" && \
-  bash -c "source /opt/ros/${ROS_DISTRO}/setup.bash; \
-  colcon build --parallel-workers ${NUM_THREADS} --cmake-args \
-    -DUSE_STACK_TRACE_LOGGER=ON"
+# RUN set -x && \
+#   : "build ROS2 packages" && \
+#   bash -c "source /opt/ros/${ROS_DISTRO}/setup.bash; \
+#   colcon build --parallel-workers ${NUM_THREADS} --cmake-args \
+#     -DUSE_STACK_TRACE_LOGGER=ON"
 
 RUN set -x && \
   sh -c "echo '#'\!'/bin/bash\nset -e\nsource /opt/ros/${ROS_DISTRO}/setup.bash\nsource /ros2_ws/install/setup.bash\nexec \"\$@\"' > /ros_entrypoint.sh" && \

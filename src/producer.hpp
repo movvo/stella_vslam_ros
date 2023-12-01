@@ -4,7 +4,7 @@
 #include <rclcpp/rclcpp.hpp>
 #include <rclcpp_components/component_manager.hpp>
 #include <public_component_manager_isolated.hpp>
-// #include "geo_calicam/monocular_calicam.hpp"
+#include "geo_calicam/monocular_calicam.hpp"
 
 #include <system.h>
 #include <stella_vslam_ros.h>
@@ -33,7 +33,7 @@ public:
 
 private:
     std::string mode_;
-    // std::shared_ptr<MonocularCaliCam> calicam_;
+    std::shared_ptr<geo_calicam::MonocularCaliCam> calicam_;
     std::shared_ptr<Video> video_;
     std::shared_ptr<boost::circular_buffer<std::shared_ptr<stella_vslam::data::frame>>> buffer_;
     rclcpp::TimerBase::SharedPtr timer_;

@@ -44,7 +44,7 @@ void Producer::Configure()
     mode_ = declare_parameter("mode", "video");
     if (mode_ == "camera") {
         // Geo Calicam
-        // calicam_ = std::make_shared<MonocularCaliCam>();
+        calicam_ = std::make_shared<geo_calicam::MonocularCaliCam>(shared_from_this());
     }
     else if (mode_ == "video") {
         // Video
@@ -60,9 +60,9 @@ void Producer::TimerCallback()
 {
     cv::Mat frame, mask;
     if (mode_ == "camera") {
-        // if (!calicam_->GrabFrame(frame)) {
+        if (!calicam_->GrabFrame(frame)) {
             return;
-        // }   
+        }   
     }
     else if (mode_ == "video") {
         if (!video_->GrabFrame(frame)) {

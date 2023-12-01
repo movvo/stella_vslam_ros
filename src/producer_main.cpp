@@ -18,5 +18,4 @@ int main(int argc, char * argv[])
 	while (rclcpp::ok()) {
 		exec->spin_once();
 	}
-	
 }
