@@ -36,6 +36,7 @@
     <depend>tf2_ros</depend>
     <depend>rosbag2_cpp</depend>
     <depend>geo_calicam</depend>
+    <depend>geo_interfaces</depend>
 
     <export>
         <build_type>ament_cmake</build_type>

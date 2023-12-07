@@ -23,6 +23,9 @@
 #include <ghc/filesystem.hpp>
 #include <boost/circular_buffer.hpp>
 
+#include "geo_interfaces/msg/database.hpp"
+
+using Mat44_t = Eigen::Matrix4d;
 
 namespace stella_vslam_ros {
 
@@ -54,9 +57,13 @@ public:
     void TimerCallback();
     void LogWithTimestamp(std::string msg);
     void AddFrame(std::shared_ptr<stella_vslam::data::frame> & frame);
+    void PublishResult(const std::shared_ptr<Mat44_t> & cam_pose_wc);
     int id_;
+    std::string map_db_path_;
     rclcpp::Node::SharedPtr nh_;
     rclcpp::TimerBase::SharedPtr timer_;
+    stella_vslam::tracker_state_t last_track_state_;
+    rclcpp::Publisher<geo_interfaces::msg::Database>::SharedPtr status_pub_;
     std::mutex buffer_mutex_;
     boost::circular_buffer<std::shared_ptr<stella_vslam::data::frame>> buffer_;
 };

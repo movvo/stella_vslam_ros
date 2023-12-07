@@ -32,6 +32,10 @@ System::System(
     bool temporal_mapping = nh_->declare_parameter("temporal_mapping", false);
     std::string viewer = nh_->declare_parameter("viewer", "none");
 
+    std::string map = nh_->declare_parameter<std::string>("map", "test_map.db");
+    std::string map_folder = nh_->declare_parameter<std::string>("map_folder_path", "/maps");
+    map_db_path_ = map_folder + "/" + map;
+
     if (vocab_file_path.empty() || setting_file_path.empty()) {
         RCLCPP_FATAL(nh_->get_logger(), "Invalid parameter");
         return;
@@ -159,6 +163,7 @@ System::System(
 
     timer_ = nh_->create_wall_timer(33ms, std::bind(&System::TimerCallback, this));
     buffer_ = boost::circular_buffer<std::shared_ptr<stella_vslam::data::frame>>(BUFFER_LENGTH);
+    status_pub_ = nh_->create_publisher<geo_interfaces::msg::Database>("/status", 10);
     id_ = rand();
 }
 
@@ -210,7 +215,41 @@ void System::TimerCallback()
         LogWithTimestamp("Feeding frame with id " + std::to_string(data_frame_ptr->id_));
         auto res = slam_->feed_frame(id_, *data_frame_ptr.get(), img);
         LogWithTimestamp("Ended feeding frame");
+
+        PublishResult(res);
     }
+}
+
+void System::PublishResult(const std::shared_ptr<Mat44_t> & cam_pose_wc)
+{
+    auto track_state = static_cast<stella_vslam::tracker_state_t>(slam_->get_tracking_state());
+    if (track_state == stella_vslam::tracker_state_t::Tracking || (track_state == stella_vslam::tracker_state_t::Lost && last_track_state_ == stella_vslam::tracker_state_t::Tracking)) {        
+        geo_interfaces::msg::Database pub_msg;
+        pub_msg.header.stamp = nh_->now();
+        if (track_state == stella_vslam::tracker_state_t::Tracking) {
+            pub_msg.state = "TRACKING";
+        }
+        else {
+            pub_msg.state = "LOST";
+        }
+        pub_msg.node_name = (std::string) nh_->get_namespace();
+        pub_msg.map_name = map_db_path_;
+
+        stella_vslam::Quat_t q_rotation_wc(cam_pose_wc->block<3, 3>(0, 0));
+        stella_vslam::Vec3_t translation_wc = cam_pose_wc->block<3, 1>(0, 3);
+        pub_msg.x = translation_wc(0);
+        pub_msg.y = translation_wc(1);
+        pub_msg.z = translation_wc(2);
+        pub_msg.q_x = q_rotation_wc.x();
+        pub_msg.q_y = q_rotation_wc.y();
+        pub_msg.q_z = q_rotation_wc.z();
+        pub_msg.q_w = q_rotation_wc.w();
+
+        // Put the message into a queue to be processed by the middleware.
+        // This call is non-blocking
+        status_pub_->publish(std::move(pub_msg));
+    }
+    last_track_state_ = track_state;
 }
 
 void System::AddFrame(std::shared_ptr<stella_vslam::data::frame> & frame)

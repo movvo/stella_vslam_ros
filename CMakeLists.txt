@@ -131,6 +131,8 @@ find_package(tf2_geometry_msgs REQUIRED)
 find_package(tf2_msgs REQUIRED)
 find_package(tf2_ros REQUIRED)
 find_package(rosbag2_cpp REQUIRED)
+find_package(geo_interfaces REQUIRED)
+find_package(geo_calicam REQUIRED)
 
 # thread library
 find_package(Threads REQUIRED)
@@ -233,7 +235,8 @@ ament_target_dependencies(stella_vslam_ros_system
   tf2_eigen
   tf2_geometry_msgs
   tf2_msgs
-  tf2_ros)
+  tf2_ros
+  geo_interfaces)
 target_link_libraries(stella_vslam_ros_system PRIVATE
   yaml-cpp
   stella_vslam::stella_vslam)
@@ -245,12 +248,32 @@ if(NOT WIN32)
   ament_environment_hooks(
     "${ament_cmake_package_templates_ENVIRONMENT_HOOK_LIBRARY_PATH}")
 endif()
+install(
+    DIRECTORY src/
+    DESTINATION include
+)
+install(
+    DIRECTORY 3rd/
+    DESTINATION 3rd
+)
+
+target_include_directories(stella_vslam_ros_system
+                           PUBLIC
+                           "$<BUILD_INTERFACE:${json_INCLUDE_DIR}>"
+                           "$<BUILD_INTERFACE:${popl_INCLUDE_DIR}>"
+                           "$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/src/>"
+                           "$<INSTALL_INTERFACE:3rd/json/include>"
+                           "$<INSTALL_INTERFACE:3rd/popl/include>"
+                           "$<INSTALL_INTERFACE:3rd/filesystem/include>"
+                           "$<INSTALL_INTERFACE:include/>")
+
 install(TARGETS
   stella_vslam_ros_system
   EXPORT export_${PROJECT_NAME}
   ARCHIVE DESTINATION lib
   LIBRARY DESTINATION lib
   RUNTIME DESTINATION bin
+  INCLUDES DESTINATION include
 )
 
 ament_package()

@@ -148,9 +148,9 @@ COPY . /ros2_ws/src/stella_vslam_ros
 #   colcon build --parallel-workers ${NUM_THREADS} --cmake-args \
 #     -DUSE_STACK_TRACE_LOGGER=ON"
 
-RUN set -x && \
-  sh -c "echo '#'\!'/bin/bash\nset -e\nsource /opt/ros/${ROS_DISTRO}/setup.bash\nsource /ros2_ws/install/setup.bash\nexec \"\$@\"' > /ros_entrypoint.sh" && \
-  chmod u+x /ros_entrypoint.sh
+# RUN set -x && \
+#   sh -c "echo '#'\!'/bin/bash\nset -e\nsource /opt/ros/${ROS_DISTRO}/setup.bash\nsource /ros2_ws/install/setup.bash\nexec \"\$@\"' > /ros_entrypoint.sh" && \
+#   chmod u+x /ros_entrypoint.sh
 
-ENTRYPOINT ["/ros_entrypoint.sh"]
+# ENTRYPOINT ["/ros_entrypoint.sh"]
 CMD ["bash"]

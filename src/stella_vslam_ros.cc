@@ -4,9 +4,9 @@
 
 #include <chrono>
 
-#include <tf2_eigen/tf2_eigen.h>
-#include <tf2_geometry_msgs/tf2_geometry_msgs.h>
-#include <geometry_msgs/msg/transform_stamped.h>
+#include <tf2_eigen/tf2_eigen.hpp>
+#include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
+#include <geometry_msgs/msg/transform_stamped.hpp>
 #include <opencv2/core/core.hpp>
 #include <opencv2/imgcodecs.hpp>
 #include <opencv2/opencv.hpp>
@@ -245,11 +245,11 @@ void mono::callback(sensor_msgs::msg::Image::UniquePtr msg_unique_ptr) {
 
     // input the current frame and estimate the camera pose
   
-    ms = duration_cast<milliseconds>(system_clock::now().time_since_epoch()).count();
-    std::cout<<"["<<ms<<"]"<<"Call of the component: "<<std::to_string(id_)<<std::endl;
-    //auto cam_pose_wc = slam_->feed_monocular_frame(id_, cv_bridge::toCvShare(msg)->image, timestamp, mask_);
-    ms = duration_cast<milliseconds>(system_clock::now().time_since_epoch()).count();
-    std::cout<<"["<<ms<<"]"<<"Finish of the call of the component: "<<std::to_string(id_)<<std::endl<<std::endl;
+    // ms = duration_cast<milliseconds>(system_clock::now().time_since_epoch()).count();
+    // std::cout<<"["<<ms<<"]"<<"Call of the component: "<<std::to_string(id_)<<std::endl;
+    auto cam_pose_wc = slam_->feed_monocular_frame(id_, cv_bridge::toCvShare(msg)->image, timestamp, mask_);
+    // ms = duration_cast<milliseconds>(system_clock::now().time_since_epoch()).count();
+    // std::cout<<"["<<ms<<"]"<<"Finish of the call of the component: "<<std::to_string(id_)<<std::endl<<std::endl;
 
     const rclcpp::Time tp_2 = node_->now();
     const double track_time = (tp_2 - tp_1).seconds();
