@@ -72,11 +72,11 @@ void Producer::TimerCallback()
     
     const double timestamp = now().seconds();
 
-    ::LogWithTimestamp("Start creating monocular frame");
+    // ::LogWithTimestamp("Start creating monocular frame");
     auto data_frame = slam_->create_monocular_frame(1, frame, timestamp, mask);
     auto data_frame_ptr = std::make_shared<stella_vslam::data::frame>(data_frame);
     // ::LogWithTimestamp("Finish creating monocular frame with memaddres 0x" + std::to_string(reinterpret_cast<std::uintptr_t>(data_frame_ptr.get())));
-    ::LogWithTimestamp("Finish creating monocular frame with id " + std::to_string(data_frame_ptr->id_));
+    // ::LogWithTimestamp("Finish creating monocular frame with id " + std::to_string(data_frame_ptr->id_));
 
     // Feed to components
     for (auto & [id, node] : node_wrappers_) {

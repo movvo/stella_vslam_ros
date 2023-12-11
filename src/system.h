@@ -24,6 +24,7 @@
 #include <boost/circular_buffer.hpp>
 
 #include "geo_interfaces/msg/database.hpp"
+#include "geo_interfaces/srv/transition.hpp"
 
 using Mat44_t = Eigen::Matrix4d;
 
@@ -58,12 +59,16 @@ public:
     void LogWithTimestamp(std::string msg);
     void AddFrame(std::shared_ptr<stella_vslam::data::frame> & frame);
     void PublishResult(const std::shared_ptr<Mat44_t> & cam_pose_wc);
+    void TransitionCallback(const std::shared_ptr<geo_interfaces::srv::Transition::Request> request,
+                                std::shared_ptr<geo_interfaces::srv::Transition::Response> response);
     int id_;
+    bool activated_{true};
     std::string map_db_path_;
     rclcpp::Node::SharedPtr nh_;
     rclcpp::TimerBase::SharedPtr timer_;
     stella_vslam::tracker_state_t last_track_state_;
     rclcpp::Publisher<geo_interfaces::msg::Database>::SharedPtr status_pub_;
+    rclcpp::Service<geo_interfaces::srv::Transition>::SharedPtr transition_srv_; /*< Service to trigger the transition of activation/deactivation */
     std::mutex buffer_mutex_;
     boost::circular_buffer<std::shared_ptr<stella_vslam::data::frame>> buffer_;
 };

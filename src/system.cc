@@ -3,6 +3,9 @@
 
 namespace fs = ghc::filesystem;
 
+using std::placeholders::_1;
+using std::placeholders::_2;
+using namespace std::literals;
 using namespace std::chrono_literals;
 
 namespace stella_vslam_ros {
@@ -164,6 +167,7 @@ System::System(
     timer_ = nh_->create_wall_timer(33ms, std::bind(&System::TimerCallback, this));
     buffer_ = boost::circular_buffer<std::shared_ptr<stella_vslam::data::frame>>(BUFFER_LENGTH);
     status_pub_ = nh_->create_publisher<geo_interfaces::msg::Database>("/status", 10);
+    transition_srv_ = nh_->create_service<geo_interfaces::srv::Transition>(nh_->get_name()+"/change_state"s, std::bind(&System::TransitionCallback, this, _1, _2));
     id_ = rand();
 }
 
@@ -211,10 +215,9 @@ void System::TimerCallback()
     
     if (data_frame_ptr) {
         cv::Mat img; // Empty image because is for frame_publisher
-        // LogWithTimestamp("Feeding frame with memaddres: 0x" + std::to_string(reinterpret_cast<std::uintptr_t>(data_frame_ptr.get())));
-        LogWithTimestamp("Feeding frame with id " + std::to_string(data_frame_ptr->id_));
+        // LogWithTimestamp("Feeding frame with id " + std::to_string(data_frame_ptr->id_));
         auto res = slam_->feed_frame(id_, *data_frame_ptr.get(), img);
-        LogWithTimestamp("Ended feeding frame");
+        // LogWithTimestamp("Ended feeding frame");
 
         PublishResult(res);
     }
@@ -235,15 +238,17 @@ void System::PublishResult(const std::shared_ptr<Mat44_t> & cam_pose_wc)
         pub_msg.node_name = (std::string) nh_->get_namespace();
         pub_msg.map_name = map_db_path_;
 
-        stella_vslam::Quat_t q_rotation_wc(cam_pose_wc->block<3, 3>(0, 0));
-        stella_vslam::Vec3_t translation_wc = cam_pose_wc->block<3, 1>(0, 3);
-        pub_msg.x = translation_wc(0);
-        pub_msg.y = translation_wc(1);
-        pub_msg.z = translation_wc(2);
-        pub_msg.q_x = q_rotation_wc.x();
-        pub_msg.q_y = q_rotation_wc.y();
-        pub_msg.q_z = q_rotation_wc.z();
-        pub_msg.q_w = q_rotation_wc.w();
+        if (cam_pose_wc) {
+            stella_vslam::Quat_t q_rotation_wc(cam_pose_wc->block<3, 3>(0, 0));
+            stella_vslam::Vec3_t translation_wc = cam_pose_wc->block<3, 1>(0, 3);
+            pub_msg.x = translation_wc(0);
+            pub_msg.y = translation_wc(1);
+            pub_msg.z = translation_wc(2);
+            pub_msg.q_x = q_rotation_wc.x();
+            pub_msg.q_y = q_rotation_wc.y();
+            pub_msg.q_z = q_rotation_wc.z();
+            pub_msg.q_w = q_rotation_wc.w();
+        }
 
         // Put the message into a queue to be processed by the middleware.
         // This call is non-blocking
@@ -255,7 +260,33 @@ void System::PublishResult(const std::shared_ptr<Mat44_t> & cam_pose_wc)
 void System::AddFrame(std::shared_ptr<stella_vslam::data::frame> & frame)
 {
     std::lock_guard<std::mutex> lock(buffer_mutex_);
-    buffer_.push_back(frame);
+    if (activated_) {
+        buffer_.push_back(frame);
+    }
+}
+
+void System::TransitionCallback(const std::shared_ptr<geo_interfaces::srv::Transition::Request> request,
+                                std::shared_ptr<geo_interfaces::srv::Transition::Response> response)
+{
+    switch (request->transition) {
+        case geo_interfaces::srv::Transition::Request::ACTIVATE:
+            RCLCPP_INFO(nh_->get_logger(), "Transition to ACTIVATE the component");
+            response->success = true;
+            activated_ = true;
+            timer_->reset();
+            break;
+
+        case geo_interfaces::srv::Transition::Request::DEACTIVATE:
+            RCLCPP_INFO(nh_->get_logger(), "Transition to DEACTIVATE the component");
+            response->success = true;
+            activated_ = false;
+            timer_->cancel();
+            break;
+
+        default:
+            response->success = false;
+    }
+    RCLCPP_INFO(nh_->get_logger(), "Transition completed with %s", response->success ? "SUCCESS" : "FAILURE");
 }
 
 } // namespace stella_vslam_ros
