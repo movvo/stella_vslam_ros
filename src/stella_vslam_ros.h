@@ -36,7 +36,7 @@ public:
     std::shared_ptr<stella_vslam::system> slam_;
     std::shared_ptr<stella_vslam::config> cfg_;
     rclcpp::Node* node_;
-    rclcpp::QoS custom_qos_;
+    rmw_qos_profile_t custom_qos_;
     cv::Mat mask_;
     std::vector<double> track_times_;
     std::shared_ptr<rclcpp::Publisher<nav_msgs::msg::Odometry>> pose_pub_;
@@ -86,7 +86,7 @@ public:
     mono(const std::shared_ptr<stella_vslam::system>& slam,
          rclcpp::Node* node,
          const std::string& mask_img_path);
-    void callback(sensor_msgs::msg::Image::UniquePtr msg);
+    // void callback(sensor_msgs::msg::Image::UniquePtr msg);
     void callback(const sensor_msgs::msg::Image::ConstSharedPtr& msg);
 
     std::shared_ptr<rclcpp::Subscription<sensor_msgs::msg::Image>> raw_image_sub_;

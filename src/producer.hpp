@@ -3,7 +3,7 @@
 
 #include <rclcpp/rclcpp.hpp>
 #include <rclcpp_components/component_manager.hpp>
-#include <public_component_manager_isolated.hpp>
+#include "rclcpp_components/component_manager_isolated.hpp"
 #include "geo_calicam/monocular_calicam.hpp"
 
 #include <system.h>
@@ -22,10 +22,10 @@ private:
     cv::VideoCapture cap_;
 };
 
-class Producer : public stella_vslam_ros::System, public PublicComponentManagerIsolated<rclcpp::executors::SingleThreadedExecutor> {
+class Producer : public stella_vslam_ros::System, public rclcpp_components::ComponentManagerIsolated<rclcpp::executors::SingleThreadedExecutor> {
 public:
-    using PublicComponentManagerIsolated<rclcpp::executors::SingleThreadedExecutor>::PublicComponentManagerIsolated; // Uses the Constructor of ComponentManagerIsolated
-    using stella_vslam_ros::System::System;// Uses the Constructor of System
+    using rclcpp_components::ComponentManagerIsolated<rclcpp::executors::SingleThreadedExecutor>::ComponentManagerIsolated; // Uses the Constructor of ComponentManagerIsolated
+    using stella_vslam_ros::System::System; // Uses the Constructor of System
 
     void Configure();
 

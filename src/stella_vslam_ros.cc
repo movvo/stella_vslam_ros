@@ -33,7 +33,7 @@ namespace stella_vslam_ros {
 system::system(const std::shared_ptr<stella_vslam::system>& slam,
                rclcpp::Node* node,
                const std::string& mask_img_path)
-    : slam_(slam), node_(node), custom_qos_(1),
+    : slam_(slam), node_(node), custom_qos_(rmw_qos_profile_sensor_data),
       mask_(mask_img_path.empty() ? cv::Mat{} : cv::imread(mask_img_path, cv::IMREAD_GRAYSCALE)),
       pose_pub_(node_->create_publisher<nav_msgs::msg::Odometry>("~/camera_pose", 1)),
       keyframes_pub_(node_->create_publisher<geometry_msgs::msg::PoseArray>("~/keyframes", 1)),
@@ -41,10 +41,10 @@ system::system(const std::shared_ptr<stella_vslam::system>& slam,
       map_to_odom_broadcaster_(std::make_shared<tf2_ros::TransformBroadcaster>(node_)),
       tf_(std::make_unique<tf2_ros::Buffer>(node_->get_clock())),
       transform_listener_(std::make_shared<tf2_ros::TransformListener>(*tf_)) {
-
-    custom_qos_.best_effort();
-    custom_qos_.keep_last(5);
-    custom_qos_.durability_volatile();
+    // custom_qos_.best_effort();
+    // custom_qos_.keep_last(5);
+    // custom_qos_.durability_volatile();
+    custom_qos_.depth = 1;
     init_pose_sub_ = node_->create_subscription<geometry_msgs::msg::PoseWithCovarianceStamped>(
         "/initialpose", 1,
         std::bind(&system::init_pose_callback,
@@ -226,57 +226,64 @@ mono::mono(const std::shared_ptr<stella_vslam::system>& slam,
            rclcpp::Node* node,
            const std::string& mask_img_path)
     : system(slam, node, mask_img_path) {
-    auto qos = custom_qos_;
+    auto qos = rclcpp::QoS(rclcpp::QoSInitialization::from_rmw(custom_qos_), custom_qos_);
     num_consumers_++;
-    raw_image_sub_ = node_->create_subscription<sensor_msgs::msg::Image>(
-        "camera/image_raw", qos, [this](sensor_msgs::msg::Image::UniquePtr msg_unique_ptr) { callback(std::move(msg_unique_ptr)); });
+    if (node_->get_node_options().use_intra_process_comms()) {
+        raw_image_sub_ = node_->create_subscription<sensor_msgs::msg::Image>(
+            "camera/image_raw", qos, [this](sensor_msgs::msg::Image::UniquePtr msg_unique_ptr) { callback(std::move(msg_unique_ptr)); });
+    }
+    else {
+        raw_image_sub_ = node_->create_subscription<sensor_msgs::msg::Image>(
+            "camera/image_raw", qos, std::bind(&mono::callback, this, std::placeholders::_1));
+    }
 }
 
-void mono::callback(sensor_msgs::msg::Image::UniquePtr msg_unique_ptr) {
-    sensor_msgs::msg::Image::ConstSharedPtr msg = std::move(msg_unique_ptr);
-    if (camera_optical_frame_.empty()) {
-        camera_optical_frame_ = msg->header.frame_id;
-    }
-    const rclcpp::Time tp_1 = node_->now();
-    const double timestamp = rclcpp::Time(msg->header.stamp).seconds();
+// void mono::callback(sensor_msgs::msg::Image::UniquePtr msg_unique_ptr) {
+//     std::cout << "Mono callback" << std::endl;
+//     sensor_msgs::msg::Image::ConstSharedPtr msg = std::move(msg_unique_ptr);
+//     if (camera_optical_frame_.empty()) {
+//         camera_optical_frame_ = msg->header.frame_id;
+//     }
+//     const rclcpp::Time tp_1 = node_->now();
+//     const double timestamp = rclcpp::Time(msg->header.stamp).seconds();
 
-    // input the current frame and estimate the camera pose
-    auto cam_pose_wc = slam_->feed_monocular_frame(id_, cv_bridge::toCvShare(msg)->image, timestamp, mask_);
+//     // input the current frame and estimate the camera pose
+//     auto cam_pose_wc = slam_->feed_monocular_frame(id_, cv_bridge::toCvShare(msg)->image, timestamp, mask_);
 
-    const rclcpp::Time tp_2 = node_->now();
-    const double track_time = (tp_2 - tp_1).seconds();
+//     const rclcpp::Time tp_2 = node_->now();
+//     const double track_time = (tp_2 - tp_1).seconds();
 
-    // track times in seconds
-    track_times_.push_back(track_time);
+//     // track times in seconds
+//     track_times_.push_back(track_time);
 
-    // if (cam_pose_wc) {
-    //     publish_pose(*cam_pose_wc, msg->header.stamp);
-    // }
-    // if (publish_keyframes_) {
-    //     publish_keyframes(msg->header.stamp);
-    // }
+//     // if (cam_pose_wc) {
+//     //     publish_pose(*cam_pose_wc, msg->header.stamp);
+//     // }
+//     // if (publish_keyframes_) {
+//     //     publish_keyframes(msg->header.stamp);
+//     // }
 
-    // Test
-    double freq = 1/(node_->now().seconds() - last_.seconds());    
-    if (frequencies_.size() < 60){
-        frequencies_.push_back(freq);
-    }
-    else if (frequencies_.size() == 60){
-        frequencies_.erase(frequencies_.begin());
-        frequencies_.push_back(freq);
-    }
-    double sum_values = 0;
-    for (uint32_t i = 0; i<frequencies_.size(); i++){
-        sum_values += frequencies_[i];
-    }
-    // double median = sum_values/frequencies_.size();
-    // std::cout <<  "SUBS FREQ MEDIAN: " << median << std::endl;
+//     // Test
+//     double freq = 1/(node_->now().seconds() - last_.seconds());    
+//     if (frequencies_.size() < 60){
+//         frequencies_.push_back(freq);
+//     }
+//     else if (frequencies_.size() == 60){
+//         frequencies_.erase(frequencies_.begin());
+//         frequencies_.push_back(freq);
+//     }
+//     double sum_values = 0;
+//     for (uint32_t i = 0; i<frequencies_.size(); i++){
+//         sum_values += frequencies_[i];
+//     }
+//     // double median = sum_values/frequencies_.size();
+//     // std::cout <<  "SUBS FREQ MEDIAN: " << median << std::endl;
 
-    last_ = node_->now();
-    // ms = duration_cast<milliseconds>(system_clock::now().time_since_epoch()).count();
-    // std::cout<<"["<<ms<<"]"<<"Finishing callback: "<<std::to_string(id_)<<std::endl;
+//     last_ = node_->now();
+//     // ms = duration_cast<milliseconds>(system_clock::now().time_since_epoch()).count();
+//     // std::cout<<"["<<ms<<"]"<<"Finishing callback: "<<std::to_string(id_)<<std::endl;
 
-}
+// }
 
 void mono::callback(const sensor_msgs::msg::Image::ConstSharedPtr& msg) {
     if (camera_optical_frame_.empty()) {

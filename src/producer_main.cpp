@@ -14,7 +14,7 @@ int main(int argc, char * argv[])
 	std::shared_ptr<Producer> node = std::make_shared<Producer>(exec);
 	node->Configure();
 	// exec->add_node(node->System::get_node_base_interface());
-	exec->add_node(node->PublicComponentManagerIsolated<rclcpp::executors::SingleThreadedExecutor>::get_node_base_interface());
+	exec->add_node(node->ComponentManagerIsolated<rclcpp::executors::SingleThreadedExecutor>::get_node_base_interface());
 	while (rclcpp::ok()) {
 		exec->spin_once();
 	}

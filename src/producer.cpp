@@ -45,6 +45,7 @@ void Producer::Configure()
     if (mode_ == "camera") {
         // Geo Calicam
         calicam_ = std::make_shared<geo_calicam::MonocularCaliCam>(shared_from_this());
+        calicam_->Deactivate(); // Stop timer grabing frames and publishing it
     }
     else if (mode_ == "video") {
         // Video
