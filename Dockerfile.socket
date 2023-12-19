@@ -94,11 +94,20 @@ RUN set -x && \
   apt-get autoremove -y -qq && \
   rm -rf /var/lib/apt/lists/*
 
-WORKDIR /stella
-RUN set -x && \
-  git clone --branch producer_consumer https://github.com/movvo/stella_vslam.git && \
-  cd stella_vslam && \
-  git submodule update -i --recursive && \
+# WORKDIR /stella
+# RUN set -x && \
+#   git clone --branch producer_consumer https://github.com/movvo/stella_vslam.git && \
+#   cd stella_vslam && \
+#   git submodule update -i --recursive && \
+#   mkdir -p build && \
+#   cd build && \
+#   CMAKE_PREFIX_PATH=/opt/ros/${ROS_DISTRO}/lib/cmake cmake .. && \
+#   make -j${NUM_THREADS} && \
+#   make install && \
+#   chmod -R 777 ./*
+
+COPY ./stella_vslam /stella/stella_vslam
+RUN cd /stella/stella_vslam && \
   mkdir -p build && \
   cd build && \
   CMAKE_PREFIX_PATH=/opt/ros/${ROS_DISTRO}/lib/cmake cmake .. && \
@@ -140,7 +149,7 @@ RUN set -x && \
   rm -rf /var/lib/apt/lists/*
 
 WORKDIR /ros2_ws
-COPY . /ros2_ws/src/stella_vslam_ros
+COPY ./stella_vslam_ros /ros2_ws/src/stella_vslam_ros
 
 # RUN set -x && \
 #   : "build ROS2 packages" && \
