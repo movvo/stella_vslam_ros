@@ -37,6 +37,7 @@ private:
     std::shared_ptr<Video> video_;
     std::shared_ptr<boost::circular_buffer<std::shared_ptr<stella_vslam::data::frame>>> buffer_;
     rclcpp::TimerBase::SharedPtr timer_;
+    rclcpp::CallbackGroup::SharedPtr timer_callback_group_; /*!< callback group for the timer*/
 };
 
 #endif // GEO_VSLAM__PRODUCER_HPP

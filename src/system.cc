@@ -164,6 +164,7 @@ System::System(
         });
     }
 
+    
     timer_ = nh_->create_wall_timer(33ms, std::bind(&System::TimerCallback, this));
     buffer_ = boost::circular_buffer<std::shared_ptr<stella_vslam::data::frame>>(BUFFER_LENGTH);
     status_pub_ = nh_->create_publisher<geo_interfaces::msg::Database>("/status", 10);
@@ -204,6 +205,12 @@ void System::LogWithTimestamp(std::string msg)
 
 void System::TimerCallback()
 {
+    // uint64_t timestamp = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+    // if (last_timestamp_ != 0) {
+    //     std::cout << "[Consumer-" << id_ << "]: Time between frames in ms: " << timestamp - last_timestamp_ << std::endl;
+    // }
+    // last_timestamp_ = timestamp;
+
     std::shared_ptr<stella_vslam::data::frame> data_frame_ptr;
     {
         std::lock_guard<std::mutex> lock(buffer_mutex_);
@@ -216,7 +223,11 @@ void System::TimerCallback()
     if (data_frame_ptr) {
         cv::Mat img; // Empty image because is for frame_publisher
         // LogWithTimestamp("Feeding frame with id " + std::to_string(data_frame_ptr->id_));
+        // uint64_t timestamp_1 = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
         auto res = slam_->feed_frame(id_, *data_frame_ptr.get(), img);
+        // uint64_t timestamp_2 = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+        // std::cout << "[Consumer-" << id_ << "]: Tracking time (for frame id " << data_frame_ptr->id_ << "): " << timestamp_2 - timestamp_1 << std::endl;
+
         // LogWithTimestamp("Ended feeding frame");
 
         PublishResult(res);

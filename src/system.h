@@ -64,6 +64,7 @@ public:
     int id_;
     bool activated_{true};
     std::string map_db_path_;
+    uint64_t last_timestamp_ = 0;
     rclcpp::Node::SharedPtr nh_;
     rclcpp::TimerBase::SharedPtr timer_;
     stella_vslam::tracker_state_t last_track_state_;

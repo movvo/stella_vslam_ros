@@ -39,7 +39,8 @@ bool Video::GrabFrame(cv::Mat & frame)
 void Producer::Configure()
 {
     double frequency = declare_parameter("timer_frequency", 30.0);
-    timer_ = create_wall_timer(std::chrono::duration<double>(1/frequency), std::bind(&Producer::TimerCallback, this));
+    timer_callback_group_ = create_callback_group(rclcpp::CallbackGroupType::MutuallyExclusive);
+    timer_ = create_wall_timer(std::chrono::duration<double>(1/frequency), std::bind(&Producer::TimerCallback, this), timer_callback_group_);
 
     mode_ = declare_parameter("mode", "video");
     if (mode_ == "camera") {
@@ -78,6 +79,12 @@ void Producer::TimerCallback()
     auto data_frame_ptr = std::make_shared<stella_vslam::data::frame>(data_frame);
     // ::LogWithTimestamp("Finish creating monocular frame with memaddres 0x" + std::to_string(reinterpret_cast<std::uintptr_t>(data_frame_ptr.get())));
     // ::LogWithTimestamp("Finish creating monocular frame with id " + std::to_string(data_frame_ptr->id_));
+
+    uint64_t timestamp_ms = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+    // if (last_timestamp_ != 0) {
+    //     std::cout << "[Producer-" << id_ << "]: (frame id" << data_frame_ptr->id_ << ") Time between frames in ms: " << timestamp_ms - last_timestamp_ << std::endl;
+    // }
+    // last_timestamp_ = timestamp_ms;
 
     // Feed to components
     for (auto & [id, node] : node_wrappers_) {
