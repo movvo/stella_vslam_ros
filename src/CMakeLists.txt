@@ -80,7 +80,7 @@ foreach(EXECUTABLE_TARGET IN LISTS EXECUTABLE_TARGETS)
                               tf2_msgs
                               tf2_ros
                               rosbag2_cpp
-                              geo_calicam
+                              geo_camera
                               geo_interfaces)
     install(TARGETS ${EXECUTABLE_TARGET}
             DESTINATION lib/${PROJECT_NAME})

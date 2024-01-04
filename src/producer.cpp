@@ -44,9 +44,8 @@ void Producer::Configure()
 
     mode_ = declare_parameter("mode", "video");
     if (mode_ == "camera") {
-        // Geo Calicam
-        calicam_ = std::make_shared<geo_calicam::MonocularCaliCam>(shared_from_this());
-        calicam_->Deactivate(); // Stop timer grabing frames and publishing it
+        // Camera
+        camera_ = std::make_shared<geo_camera::MonocularCalicam>("Calicam", shared_from_this());
     }
     else if (mode_ == "video") {
         // Video
@@ -62,7 +61,7 @@ void Producer::TimerCallback()
 {
     cv::Mat frame, mask;
     if (mode_ == "camera") {
-        if (!calicam_->GrabFrame(frame)) {
+        if (!camera_->GrabFrame(frame)) {
             return;
         }   
     }
@@ -80,7 +79,7 @@ void Producer::TimerCallback()
     // ::LogWithTimestamp("Finish creating monocular frame with memaddres 0x" + std::to_string(reinterpret_cast<std::uintptr_t>(data_frame_ptr.get())));
     // ::LogWithTimestamp("Finish creating monocular frame with id " + std::to_string(data_frame_ptr->id_));
 
-    uint64_t timestamp_ms = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+    // uint64_t timestamp_ms = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
     // if (last_timestamp_ != 0) {
     //     std::cout << "[Producer-" << id_ << "]: (frame id" << data_frame_ptr->id_ << ") Time between frames in ms: " << timestamp_ms - last_timestamp_ << std::endl;
     // }

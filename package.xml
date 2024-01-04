@@ -35,7 +35,7 @@
     <depend>tf2_msgs</depend>
     <depend>tf2_ros</depend>
     <depend>rosbag2_cpp</depend>
-    <depend>geo_calicam</depend>
+    <depend>geo_camera</depend>
     <depend>geo_interfaces</depend>
 
     <export>

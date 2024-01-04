@@ -132,7 +132,7 @@ find_package(tf2_msgs REQUIRED)
 find_package(tf2_ros REQUIRED)
 find_package(rosbag2_cpp REQUIRED)
 find_package(geo_interfaces REQUIRED)
-find_package(geo_calicam REQUIRED)
+find_package(geo_camera REQUIRED)
 
 # thread library
 find_package(Threads REQUIRED)
